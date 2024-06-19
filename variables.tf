@@ -39,4 +39,3 @@ variable "private_endpoint_name" {
   description = "The name of the private endpoint"
   type        = string
 }
-
