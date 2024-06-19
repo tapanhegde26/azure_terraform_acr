@@ -1,3 +1,5 @@
+# main.tf
+
 # Configure the Azure provider
 
 provider "azurerm" {
@@ -58,6 +60,17 @@ resource "azurerm_container_registry" "acr2" {
   }
 }
 
+resource "azurerm_container_registry" "acr3" {
+  name                          = "devopssample333"
+  resource_group_name           = "devops-resources"
+  location                      = "East US"
+  sku                           = "Premium"
+  admin_enabled                 = true
+  public_network_access_enabled = false
+  network_rule_set {
+    default_action = "Deny"
+  }
+}
 
 # Define the private endpoint for the ACR
 resource "azurerm_private_endpoint" "example" {
@@ -87,6 +100,22 @@ resource "azurerm_private_endpoint" "acr2_private_endpoint" {
     is_manual_connection           = false
   }
 }
+
+# Define the private endpoint for ACR2
+resource "azurerm_private_endpoint" "acr3_private_endpoint" {
+  name                = "acr3-private-endpoint"
+  location            = azurerm_resource_group.example.location
+  resource_group_name = azurerm_resource_group.example.name
+  subnet_id           = azurerm_subnet.example.id
+
+  private_service_connection {
+    name                           = "acr3-priv-conn"
+    private_connection_resource_id = azurerm_container_registry.acr3.id
+    subresource_names              = ["registry"]
+    is_manual_connection           = false
+  }
+}
+
 # Define the private DNS zone
 resource "azurerm_private_dns_zone" "example" {
   name                = "privatelink.azurecr.io"
@@ -120,6 +149,14 @@ resource "azurerm_private_dns_a_record" "acr2_dns" {
   records = [azurerm_private_endpoint.acr2_private_endpoint.private_service_connection[0].private_ip_address]
 }
 
+resource "azurerm_private_dns_a_record" "acr3_dns" {
+  name                = azurerm_container_registry.acr3.name
+  zone_name           = azurerm_private_dns_zone.example.name
+  resource_group_name = azurerm_resource_group.example.name
+  ttl                 = 300
+
+  records = [azurerm_private_endpoint.acr3_private_endpoint.private_service_connection[0].private_ip_address]
+}
 # Output the virtual network ID
 output "vnet_id" {
   value = azurerm_virtual_network.example.id
@@ -146,4 +183,12 @@ output "acr2_id" {
 
 output "acr2_private_endpoint_id" {
   value = azurerm_private_endpoint.acr2_private_endpoint.id
+}
+
+output "acr3_id" {
+  value = azurerm_container_registry.acr3.id
+}
+
+output "acr3_private_endpoint_id" {
+  value = azurerm_private_endpoint.acr3_private_endpoint.id
 }
